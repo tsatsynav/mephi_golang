@@ -1,29 +1,52 @@
 package spentenergy
 
 import (
+	"errors"
 	"time"
 )
 
 // Основные константы, необходимые для расчетов.
 const (
-	mInKm                      = 1000 // количество метров в километре.
-	minInH                     = 60   // количество минут в часе.
-	stepLengthCoefficient      = 0.45 // коэффициент для расчета длины шага на основе роста.
-	walkingCaloriesCoefficient = 0.5  // коэффициент для расчета калорий при ходьбе.
+	mInKm                      = 1000
+	minInH                     = 60
+	stepLengthCoefficient      = 0.45
+	walkingCaloriesCoefficient = 0.5
 )
 
-func WalkingSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
-	// TODO: реализовать функцию
-}
-
-func RunningSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
-	// TODO: реализовать функцию
-}
-
-func MeanSpeed(steps int, height float64, duration time.Duration) float64 {
-	// TODO: реализовать функцию
-}
-
+// Distance считает дистанцию в километрах
 func Distance(steps int, height float64) float64 {
-	// TODO: реализовать функцию
+	// Шаги * коэфф длины шага * рост / 1000 (чтобы перевести метры в километры)
+	return float64(steps) * stepLengthCoefficient * height / mInKm
+}
+
+// MeanSpeed считает среднюю скорость
+func MeanSpeed(steps int, height float64, duration time.Duration) float64 {
+	// Если время или шаги нулевые/отрицательные, то скорость 0
+	if duration <= 0 || steps <= 0 {
+		return 0
+	}
+	dist := Distance(steps, height)
+	return dist / duration.Hours()
+}
+
+// RunningSpentCalories считает калории при беге
+func RunningSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
+	// Проверяем, что все значения адекватные
+	if steps <= 0 || weight <= 0 || height <= 0 || duration <= 0 {
+		return 0, errors.New("все значения должны быть больше нуля")
+	}
+	speed := MeanSpeed(steps, height, duration)
+	// Вес * скорость * время в часах
+	return weight * speed * duration.Hours(), nil
+}
+
+// WalkingSpentCalories считает калории при ходьбе
+func WalkingSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
+	// При ходьбе тратится в 2 раза меньше (используем коэфф 0.5)
+	// Поэтому сначала считаем как для бега, а потом умножаем на коэффициент
+	calories, err := RunningSpentCalories(steps, weight, height, duration)
+	if err != nil {
+		return 0, err
+	}
+	return calories * walkingCaloriesCoefficient, nil
 }
